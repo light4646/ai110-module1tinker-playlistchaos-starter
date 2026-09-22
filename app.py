@@ -276,13 +276,18 @@ def render_playlist(label, songs):
         st.write("No songs in this playlist.")
         return
 
-    # type="search" commits as soon as the box is cleared, so the full list comes back;
-    # live=True filters while typing instead of waiting for Enter.
-    query = st.text_input(
+    # A searchable dropdown: typing narrows the suggestions to matching artists and
+    # titles. accept_new_options lets a partial term like "thunder" be searched too,
+    # and clearing it (None) shows the full list again.
+    suggestions = sorted({str(s[f]) for s in songs for f in ("artist", "title") if s.get(f)})
+    query = st.selectbox(
         f"Search {label} playlist by artist or title",
+        options=suggestions,
+        index=None,
+        placeholder="Start typing an artist or title...",
         key=f"search_{label}",
-        type="search",
-        live=True,
+        accept_new_options=True,
+        filter_mode="contains",
     )
     filtered = search_songs(songs, query)
 
