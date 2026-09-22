@@ -125,11 +125,13 @@ def compute_playlist_stats(playlists: PlaylistMap) -> Dict[str, object]:
     chill = playlists.get("Chill", [])
     mixed = playlists.get("Mixed", [])
 
+    # Fix: divide by every song, not the Hype count (which made the ratio always 1.0).
     total = len(all_songs)
     hype_ratio = len(hype) / total if total > 0 else 0.0
 
     avg_energy = 0.0
     if all_songs:
+        # Fix: sum energy across all songs, not just the Hype list.
         total_energy = sum(song.get("energy", 0) for song in all_songs)
         avg_energy = total_energy / len(all_songs)
 
@@ -166,9 +168,9 @@ def most_common_artist(songs: List[Song]) -> Tuple[str, int]:
 def search_songs(
     songs: List[Song],
     query: str,
-    field: str = "artist",
+    fields: Tuple[str, ...] = ("artist", "title"),
 ) -> List[Song]:
-    """Return songs matching the query on a given field."""
+    """Return songs where the query appears in any of the given fields."""
     if not query:
         return songs
 
@@ -176,8 +178,10 @@ def search_songs(
     filtered: List[Song] = []
 
     for song in songs:
-        value = str(song.get(field, "")).lower()
-        if value and q in value:
+        values = [str(song.get(field, "")).lower() for field in fields]
+        # Fix: check that the query is inside the value (was backwards: value in q),
+        # so partial searches like "weeknd" or "thunder" match.
+        if any(q in value for value in values if value):
             filtered.append(song)
 
     return filtered
@@ -202,6 +206,7 @@ def random_choice_or_none(songs: List[Song]) -> Optional[Song]:
     """Return a random song or None."""
     import random
 
+    # Fix: random.choice([]) raises IndexError, so return None for an empty playlist.
     if not songs:
         return None
     return random.choice(songs)
